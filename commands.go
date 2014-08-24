@@ -4,7 +4,12 @@ import (
 	"log"
 	"os"
 
+	"fmt"
+
 	"github.com/codegangsta/cli"
+	"github.com/kyokomi/appConfig"
+	"github.com/kyokomi/scan"
+	"github.com/skratchdot/open-golang/open"
 )
 
 var Commands = []cli.Command{
@@ -53,7 +58,52 @@ func doAdd(c *cli.Context) {
 }
 
 func doList(c *cli.Context) {
+
+	t, err  := readAccessToken(c.App.Name)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	d := NewDropBox(t)
+
+	l, err := d.ReadImageList()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, s := range l {
+		fmt.Printf("![%s](%s)\n", s.Name, s.URL)
+	}
 }
 
 func doDelete(c *cli.Context) {
+}
+
+func readAccessToken(appName string) (string, error) {
+	s := scan.CliScan{
+		Scans: []scan.Scan{
+			{Name: "token",
+				Value: "",
+				Usage: "please your dropbox accessToken",
+			},
+		},
+	}
+
+	ac := appConfig.NewAppConfig(appName)
+	data, err := ac.ReadAppConfig()
+	if err != nil {
+
+		// TODO: OAuth jump
+		open.Run("https://localhost:8443/access")
+
+		// Scan accessToken
+		t := s.Scan("token")
+
+		// config write
+		if err := ac.WriteAppConfig([]byte(t)); err != nil {
+			return "", err
+		}
+	}
+
+	return string(data), nil
 }
