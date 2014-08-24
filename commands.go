@@ -12,6 +12,9 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
+
+var ac *appConfig.AppConfig
+
 var Commands = []cli.Command{
 	commandAdd,
 	commandList,
@@ -58,13 +61,17 @@ func doAdd(c *cli.Context) {
 }
 
 func doList(c *cli.Context) {
+	ac = appConfig.NewAppConfig(c.App.Name)
 
-	t, err  := readAccessToken(c.App.Name)
+	t, err  := readAccessToken()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	d := NewDropBox(t)
+	if err := d.SetupCache(ac.ConfigDirPath); err != nil {
+		log.Fatal(err)
+	}
 
 	l, err := d.ReadImageList()
 	if err != nil {
@@ -79,7 +86,7 @@ func doList(c *cli.Context) {
 func doDelete(c *cli.Context) {
 }
 
-func readAccessToken(appName string) (string, error) {
+func readAccessToken() (string, error) {
 	s := scan.CliScan{
 		Scans: []scan.Scan{
 			{Name: "token",
@@ -89,7 +96,6 @@ func readAccessToken(appName string) (string, error) {
 		},
 	}
 
-	ac := appConfig.NewAppConfig(appName)
 	data, err := ac.ReadAppConfig()
 	if err != nil {
 

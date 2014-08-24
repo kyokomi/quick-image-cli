@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"code.google.com/p/leveldb-go/leveldb"
+	"code.google.com/p/leveldb-go/leveldb/db"
 )
 
 const (
@@ -18,12 +20,14 @@ const (
 type DropBox struct {
 	client      *http.Client
 	accessToken string
+	level *leveldb.DB
 }
 
 func NewDropBox(accessToken string) *DropBox {
 	dropBox := &DropBox{
 		client:      &http.Client{},
 		accessToken: accessToken,
+
 	}
 	return dropBox
 }
@@ -31,6 +35,16 @@ func NewDropBox(accessToken string) *DropBox {
 type Image struct {
 	Name string
 	URL  string
+}
+
+func (d *DropBox) SetupCache(cacheDirPath string) error {
+	level, err := leveldb.Open(cacheDirPath, &db.Options{})
+	if err != nil {
+		return err
+	}
+
+	d.level = level
+	return nil
 }
 
 func (d *DropBox) Get(url string) ([]byte, error) {
@@ -63,17 +77,24 @@ func (d *DropBox) ReadImageList() ([]Image, error) {
 
 	//	fmt.Println(meta)
 
-	// TODO: goroutineにするか・・・
 	l := make([]Image, 0, len(meta.Contents))
 	for _, content := range meta.Contents {
 		if content.IsDir {
 			continue
 		}
 
-		// TODO: 有効期限でキャッシュしたいお LevelDB?
-		ad, err := d.Get(mediaUrl + content.Path)
+		// TODO: ちゃんと有効期限でキャッシュしたいお
+		ad, err := d.level.Get([]byte(content.Path), &db.ReadOptions{})
 		if err != nil {
-			return nil, err
+			// send request
+			ad, err = d.Get(mediaUrl + content.Path)
+			if err != nil {
+				continue
+			}
+			// cache
+			if err := d.level.Set([]byte(content.Path), ad, &db.WriteOptions{}); err != nil {
+				continue
+			}
 		}
 
 		var m media
