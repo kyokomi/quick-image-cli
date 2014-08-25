@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"fmt"
 
@@ -12,13 +11,14 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
+const accessTokenUrl = "https://kyokomi-oauth2.herokuapp.com/access"
 
 var ac *appConfig.AppConfig
 
 var Commands = []cli.Command{
 	commandAdd,
 	commandList,
-	commandDelete,
+	commandDeleteConfig,
 }
 
 var commandAdd = cli.Command{
@@ -37,24 +37,12 @@ var commandList = cli.Command{
 	Action: doList,
 }
 
-var commandDelete = cli.Command{
-	Name:  "delete",
+var commandDeleteConfig = cli.Command{
+	Name:  "delete-config",
 	Usage: "",
 	Description: `
 `,
-	Action: doDelete,
-}
-
-func debug(v ...interface{}) {
-	if os.Getenv("DEBUG") != "" {
-		log.Println(v...)
-	}
-}
-
-func assert(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
+	Action: doDeleteConfig,
 }
 
 func doAdd(c *cli.Context) {
@@ -83,7 +71,13 @@ func doList(c *cli.Context) {
 	}
 }
 
-func doDelete(c *cli.Context) {
+func doDeleteConfig(c *cli.Context) {
+	ac = appConfig.NewAppConfig(c.App.Name)
+
+	if err := resetAccessToken(); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("delete config successful!")
 }
 
 func readAccessToken() (string, error) {
@@ -97,19 +91,24 @@ func readAccessToken() (string, error) {
 	}
 
 	data, err := ac.ReadAppConfig()
-	if err != nil {
+	accessToken := string(data)
+	if err != nil || accessToken == "" {
 
-		// TODO: OAuth jump
-		open.Run("https://localhost:8443/access")
+		// OAuth jump
+		open.Run(accessTokenUrl)
 
 		// Scan accessToken
-		t := s.Scan("token")
+		accessToken = s.Scan("token")
 
 		// config write
-		if err := ac.WriteAppConfig([]byte(t)); err != nil {
+		if err := ac.WriteAppConfig([]byte(accessToken)); err != nil {
 			return "", err
 		}
 	}
 
-	return string(data), nil
+	return accessToken, nil
+}
+
+func resetAccessToken() error {
+	return ac.RemoveAppConfig()
 }
