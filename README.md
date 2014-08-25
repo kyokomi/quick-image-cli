@@ -67,6 +67,12 @@ $ quick-image
 
 
 
+## Contribution
+ 
+```sh
+$ gox -osarch="darwin/amd64" -output="_obj/quick-image-cli" ./
+```
+
 ## Lisence
 
 [MIT](https://github.com/kyokomi/quick-image-cli/blob/master/LICENSE)
