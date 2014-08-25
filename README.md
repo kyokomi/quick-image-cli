@@ -18,7 +18,7 @@ USAGE:
    quick-image-cli [global options] command [command options] [arguments...]
 
 VERSION:
-   0.1.0
+   0.2.0
 
 AUTHOR:
   kyokomi - <kyoko1220adword@gmail.com>
@@ -26,8 +26,8 @@ AUTHOR:
 COMMANDS:
    add
    list
-   delete
-   help, h	Shows a list of commands or help for one command
+   delete-config
+   help, h		Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --help, -h		show help
@@ -65,12 +65,20 @@ $ quick-image
 - [clipboard](https://github.com/atotto/clipboard)
 - [peco](https://github.com/peco/peco)
 
+### add
+
+```sh
+$ 
+```
 
 
 ## Contribution
  
 ```sh
 $ gox -osarch="darwin/amd64" -output="_obj/quick-image-cli" ./
+$ zip _obj/quick-image-cli.zip _obj/quick-image-cli
+$ rm _obj/quick-image-cli
+$ ghr -u kyokomi -r quick-image-cli {tag} _obj/
 ```
 
 ## Lisence
