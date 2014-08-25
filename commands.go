@@ -27,7 +27,7 @@ var commandAdd = cli.Command{
 	Description: `
 `,
 	Flags: []cli.Flag{
-		cli.StringFlag{ Name: "path", Value: "", Usage: "", EnvVar: "" },
+		cli.StringFlag{Name: "path", Value: "", Usage: "", EnvVar: ""},
 	},
 	Action: doAdd,
 }
@@ -50,7 +50,7 @@ var commandDeleteConfig = cli.Command{
 
 func doAdd(c *cli.Context) {
 	ac = appConfig.NewAppConfig(c.App.Name)
-	t, err  := readAccessToken()
+	t, err := readAccessToken()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func doAdd(c *cli.Context) {
 
 func doList(c *cli.Context) {
 	ac = appConfig.NewAppConfig(c.App.Name)
-	t, err  := readAccessToken()
+	t, err := readAccessToken()
 	if err != nil {
 		log.Fatal(err)
 	}
