@@ -26,6 +26,9 @@ var commandAdd = cli.Command{
 	Usage: "",
 	Description: `
 `,
+	Flags: []cli.Flag{
+		cli.StringFlag{ Name: "path", Value: "", Usage: "", EnvVar: "" },
+	},
 	Action: doAdd,
 }
 
@@ -46,11 +49,25 @@ var commandDeleteConfig = cli.Command{
 }
 
 func doAdd(c *cli.Context) {
+	ac = appConfig.NewAppConfig(c.App.Name)
+	t, err  := readAccessToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	d := NewDropBox(t)
+	if err := d.SetupCache(ac.ConfigDirPath); err != nil {
+		log.Fatal(err)
+	}
+
+	filePath := c.String("path")
+	if err := d.AddImage(filePath); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func doList(c *cli.Context) {
 	ac = appConfig.NewAppConfig(c.App.Name)
-
 	t, err  := readAccessToken()
 	if err != nil {
 		log.Fatal(err)
