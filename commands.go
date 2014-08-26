@@ -61,9 +61,11 @@ func doAdd(c *cli.Context) {
 	}
 
 	filePath := c.String("path")
-	if err := d.AddImage(filePath); err != nil {
+	image, err := d.AddImage(filePath)
+	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("![%s](%s)\n", image.Name, image.URL)
 }
 
 func doList(c *cli.Context) {
@@ -77,10 +79,15 @@ func doList(c *cli.Context) {
 	if err := d.SetupCache(ac.ConfigDirPath); err != nil {
 		log.Fatal(err)
 	}
+	defer d.level.Close()
 
 	l, err := d.ReadImageList()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if len(l) == 0 {
+		fmt.Println("not files")
 	}
 
 	for _, s := range l {
@@ -95,6 +102,7 @@ func doDeleteConfig(c *cli.Context) {
 		log.Fatal(err)
 	}
 	fmt.Println("delete config successful!")
+	fmt.Println("path: ", ac.ConfigDirPath)
 }
 
 func readAccessToken() (string, error) {

@@ -7,19 +7,21 @@ import (
 	"net/http"
 	"strings"
 
-	"code.google.com/p/leveldb-go/leveldb"
-	"code.google.com/p/leveldb-go/leveldb/db"
+	"bytes"
 	"io"
 	"os"
-	"bytes"
+
+	"code.google.com/p/leveldb-go/leveldb"
+	"code.google.com/p/leveldb-go/leveldb/db"
 )
 
 const (
-	//	accountInfoUrl = "https://api.dropbox.com/1/account/info"
-	listUrl  = "https://api.dropbox.com/1/metadata/auto"
-	addUrl   = "https://api-content.dropbox.com/1/files_put/auto"
-	mediaUrl = "https://api.dropbox.com/1/media/auto"
+	accountInfoUrl = "https://api.dropbox.com/1/account/info"
+	listUrl        = "https://api.dropbox.com/1/metadata/auto/Public"
+	addUrl         = "https://api-content.dropbox.com/1/files_put/auto/Public"
+	mediaUrl       = "https://api.dropbox.com/1/media/auto"
 
+	publicUrl  = "https://dl.dropbox.com/u/%.0f"
 	authHeader = "Bearer %s"
 )
 
@@ -58,20 +60,17 @@ func (d *DropBox) Get(url string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf(authHeader, d.accessToken))
-
 	res, err := d.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	//	fmt.Println(res)
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 
 	return body, nil
 }
-
-func (d *DropBox) Post(imageUrl, filePath string) ([]byte, error) {
+func (d *DropBox) PostFile(url_, filePath string) ([]byte, error) {
 
 	var b bytes.Buffer
 	f, err := os.Open(filePath)
@@ -84,7 +83,12 @@ func (d *DropBox) Post(imageUrl, filePath string) ([]byte, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", imageUrl, &b)
+	return d.Post(url_, b)
+}
+
+func (d *DropBox) Post(url_ string, buf bytes.Buffer) ([]byte, error) {
+
+	req, err := http.NewRequest("POST", url_, &buf)
 	if err != nil {
 		return nil, err
 	}
@@ -100,15 +104,17 @@ func (d *DropBox) Post(imageUrl, filePath string) ([]byte, error) {
 }
 
 func (d *DropBox) ReadImageList() ([]Image, error) {
+	var meta metadata
 	ld, err := d.Get(listUrl)
 	if err != nil {
 		return nil, err
 	}
-
-	var meta metadata
 	json.Unmarshal(ld, &meta)
 
-	//	fmt.Println(meta)
+	a, err := d.GetAccountInfo()
+	if err != nil {
+		return nil, err
+	}
 
 	l := make([]Image, 0, len(meta.Contents))
 	for _, content := range meta.Contents {
@@ -116,42 +122,73 @@ func (d *DropBox) ReadImageList() ([]Image, error) {
 			continue
 		}
 
-		// TODO: ちゃんと有効期限でキャッシュしたいお
-		ad, err := d.level.Get([]byte(content.Path), &db.ReadOptions{})
-		if err != nil {
-			// send request
-			ad, err = d.Get(mediaUrl + content.Path)
-			if err != nil {
-				continue
-			}
-			// cache
-			if err := d.level.Set([]byte(content.Path), ad, &db.WriteOptions{}); err != nil {
-				continue
-			}
-		}
-
-		var m media
-		json.Unmarshal(ad, &m)
+		fileName := replacePublicFileName(content.Path)
 		image := Image{
-			Name: content.Path,
-			URL:  m.URL,
+			Name: fileName,
+			URL:  fmt.Sprintf(publicUrl, a.Uid) + fileName,
 		}
 		l = append(l, image)
 	}
 	return l, nil
 }
 
-func (d *DropBox) AddImage(filePath string) error {
+func (d *DropBox) GetImage(contentPath string) ([]byte, error) {
+	// send request
+	ad, err := d.Post(mediaUrl+contentPath, bytes.Buffer{})
+	if err != nil {
+		return nil, err
+	}
+	// cache
+	if d.level != nil {
+		if err := d.level.Set([]byte(contentPath), ad, &db.WriteOptions{}); err != nil {
+			return nil, err
+		}
+	}
 
+	return ad, nil
+}
+
+func (d *DropBox) AddImage(filePath string) (*Image, error) {
+
+	a, err := d.GetAccountInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	url_ := createImageUrl(filePath)
+
+	var p filePut
+	pd, err := d.PostFile(url_, filePath)
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(pd, &p)
+
+	fileName := replacePublicFileName(p.Path)
+	image := Image{
+		Name: fileName,
+		URL:  fmt.Sprintf(publicUrl, a.Uid) + fileName,
+	}
+	return &image, nil
+}
+
+func replacePublicFileName(filePath string) string {
+	return strings.Replace(filePath, "/Public", "", 1)
+}
+
+func createImageUrl(filePath string) string {
 	index := strings.LastIndex(filePath, "/")
 	fileName := filePath[index+1:]
-	url := strings.Join([]string{addUrl, fileName}, "/")
+	return strings.Join([]string{addUrl, fileName}, "/")
+}
 
-	pd, err := d.Post(url, filePath)
+func (d *DropBox) GetAccountInfo() (*accountInfo, error) {
+	var a accountInfo
+	info, err := d.Get(accountInfoUrl)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	fmt.Println(string(pd))
+	json.Unmarshal(info, &a)
 
-	return nil
+	return &a, nil
 }
