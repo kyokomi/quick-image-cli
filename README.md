@@ -9,29 +9,16 @@ terminal tool to upload quickly and easily image for golang（Go）
 
 ## Usage
 
+### list 
+
 ```sh
-$ quick-image-cli
-NAME:
-   quick-image-cli - terminal tool to upload quickly and easily image
+$ quick-image-cli list
+```
 
-USAGE:
-   quick-image-cli [global options] command [command options] [arguments...]
+### add
 
-VERSION:
-   0.2.0
-
-AUTHOR:
-  kyokomi - <kyoko1220adword@gmail.com>
-
-COMMANDS:
-   add
-   list
-   delete-config
-   help, h		Shows a list of commands or help for one command
-
-GLOBAL OPTIONS:
-   --help, -h		show help
-   --version, -v	print the version
+```sh
+$ quick-image-cli add --path {Your localFilePath}
 ```
 
 ## Install
@@ -40,10 +27,6 @@ GLOBAL OPTIONS:
 $ brew tap kyokomi/homebrew-quick-image-cli
 $ brew install quick-image-cli
 ```
-
-### AccessToken
-
-coming soon ...
 
 ## Demo
 
@@ -68,9 +51,9 @@ $ quick-image
 ### add
 
 ```sh
-$ 
+$ ./quick-image-cli add --path /Users/kyokomi/Dropbox/background/LT/img_10.jpeg
+![/img_10.jpeg](https://dl.dropbox.com/u/49084962/img_10.jpeg)
 ```
-
 
 ## Contribution
  
