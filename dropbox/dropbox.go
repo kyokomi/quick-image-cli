@@ -1,4 +1,4 @@
-package main
+package dropbox
 
 import (
 	"encoding/json"
@@ -26,15 +26,15 @@ const (
 )
 
 type DropBox struct {
-	client      *http.Client
-	accessToken string
-	level       *leveldb.DB
+	Client      *http.Client
+	AccessToken string
+	Level       *leveldb.DB
 }
 
 func NewDropBox(accessToken string) *DropBox {
 	dropBox := &DropBox{
-		client:      &http.Client{},
-		accessToken: accessToken,
+		Client:      &http.Client{},
+		AccessToken: accessToken,
 	}
 	return dropBox
 }
@@ -50,7 +50,7 @@ func (d *DropBox) SetupCache(cacheDirPath string) error {
 		return err
 	}
 
-	d.level = level
+	d.Level = level
 	return nil
 }
 
@@ -59,8 +59,8 @@ func (d *DropBox) Get(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf(authHeader, d.accessToken))
-	res, err := d.client.Do(req)
+	req.Header.Set("Authorization", fmt.Sprintf(authHeader, d.AccessToken))
+	res, err := d.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +92,9 @@ func (d *DropBox) Post(url_ string, buf bytes.Buffer) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf(authHeader, d.accessToken))
+	req.Header.Set("Authorization", fmt.Sprintf(authHeader, d.AccessToken))
 
-	res, err := d.client.Do(req)
+	res, err := d.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (d *DropBox) ReadImageList() ([]Image, error) {
 	}
 	json.Unmarshal(ld, &meta)
 
-	a, err := d.GetAccountInfo()
+	a, err := d.accountInfo()
 	if err != nil {
 		return nil, err
 	}
@@ -139,8 +139,8 @@ func (d *DropBox) GetImage(contentPath string) ([]byte, error) {
 		return nil, err
 	}
 	// cache
-	if d.level != nil {
-		if err := d.level.Set([]byte(contentPath), ad, &db.WriteOptions{}); err != nil {
+	if d.Level != nil {
+		if err := d.Level.Set([]byte(contentPath), ad, &db.WriteOptions{}); err != nil {
 			return nil, err
 		}
 	}
@@ -150,7 +150,7 @@ func (d *DropBox) GetImage(contentPath string) ([]byte, error) {
 
 func (d *DropBox) AddImage(filePath string) (*Image, error) {
 
-	a, err := d.GetAccountInfo()
+	a, err := d.accountInfo()
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func createImageUrl(filePath string) string {
 	return strings.Join([]string{addUrl, fileName}, "/")
 }
 
-func (d *DropBox) GetAccountInfo() (*accountInfo, error) {
+func (d *DropBox) accountInfo() (*accountInfo, error) {
 	var a accountInfo
 	info, err := d.Get(accountInfoUrl)
 	if err != nil {

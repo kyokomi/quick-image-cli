@@ -9,6 +9,7 @@ import (
 	"github.com/kyokomi/appConfig"
 	"github.com/kyokomi/scan"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/kyokomi/quick-image-cli/dropbox"
 )
 
 const accessTokenUrl = "https://kyokomi-oauth2.herokuapp.com/access"
@@ -55,7 +56,7 @@ func doAdd(c *cli.Context) {
 		log.Fatal(err)
 	}
 
-	d := NewDropBox(t)
+	d := dropbox.NewDropBox(t)
 	if err := d.SetupCache(ac.ConfigDirPath); err != nil {
 		log.Fatal(err)
 	}
@@ -75,11 +76,11 @@ func doList(c *cli.Context) {
 		log.Fatal(err)
 	}
 
-	d := NewDropBox(t)
+	d := dropbox.NewDropBox(t)
 	if err := d.SetupCache(ac.ConfigDirPath); err != nil {
 		log.Fatal(err)
 	}
-	defer d.level.Close()
+	defer d.Level.Close()
 
 	l, err := d.ReadImageList()
 	if err != nil {

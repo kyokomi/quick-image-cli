@@ -1,4 +1,4 @@
-package main
+package dropbox
 
 type accountInfo struct {
 	Country     string `json:"country"`

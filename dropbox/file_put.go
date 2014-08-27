@@ -1,4 +1,4 @@
-package main
+package dropbox
 
 type filePut struct {
 	Bytes       float64 `json:"bytes"`

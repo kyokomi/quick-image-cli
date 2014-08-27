@@ -1,4 +1,4 @@
-package main
+package dropbox
 
 type media struct {
 	Expires string `json:"expires"`
