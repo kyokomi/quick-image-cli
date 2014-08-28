@@ -1,6 +1,6 @@
 package dropbox
 
-type filePut struct {
+type FilePut struct {
 	Bytes       float64 `json:"bytes"`
 	ClientMtime string  `json:"client_mtime"`
 	Icon        string  `json:"icon"`

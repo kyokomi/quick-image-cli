@@ -1,4 +1,4 @@
-package dropbox
+package main
 
 import (
 	"encoding/json"
@@ -10,16 +10,16 @@ import (
 	"bytes"
 	"io"
 	"os"
-
-	"code.google.com/p/leveldb-go/leveldb"
-	"code.google.com/p/leveldb-go/leveldb/db"
+	"github.com/kyokomi/quick-image-cli/dropbox"
 )
 
 const (
 	accountInfoUrl = "https://api.dropbox.com/1/account/info"
-	listUrl        = "https://api.dropbox.com/1/metadata/auto/Public"
-	addUrl         = "https://api-content.dropbox.com/1/files_put/auto/Public"
-	mediaUrl       = "https://api.dropbox.com/1/media/auto"
+
+	listUrl = "https://api.dropbox.com/1/metadata/auto/Public"
+	addUrl  = "https://api-content.dropbox.com/1/files_put/auto/Public"
+
+	mediaUrl = "https://api.dropbox.com/1/media/auto"
 
 	publicUrl  = "https://dl.dropbox.com/u/%.0f"
 	authHeader = "Bearer %s"
@@ -28,7 +28,6 @@ const (
 type DropBox struct {
 	Client      *http.Client
 	AccessToken string
-	Level       *leveldb.DB
 }
 
 func NewDropBox(accessToken string) *DropBox {
@@ -42,16 +41,6 @@ func NewDropBox(accessToken string) *DropBox {
 type Image struct {
 	Name string
 	URL  string
-}
-
-func (d *DropBox) SetupCache(cacheDirPath string) error {
-	level, err := leveldb.Open(cacheDirPath, &db.Options{})
-	if err != nil {
-		return err
-	}
-
-	d.Level = level
-	return nil
 }
 
 func (d *DropBox) Get(url string) ([]byte, error) {
@@ -70,6 +59,7 @@ func (d *DropBox) Get(url string) ([]byte, error) {
 
 	return body, nil
 }
+
 func (d *DropBox) PostFile(url_, filePath string) ([]byte, error) {
 
 	var b bytes.Buffer
@@ -104,18 +94,22 @@ func (d *DropBox) Post(url_ string, buf bytes.Buffer) ([]byte, error) {
 }
 
 func (d *DropBox) ReadImageList() ([]Image, error) {
-	var meta metadata
+	var meta dropbox.Metadata
 	ld, err := d.Get(listUrl)
 	if err != nil {
 		return nil, err
 	}
 	json.Unmarshal(ld, &meta)
+	fmt.Println(string(ld))
 
 	a, err := d.accountInfo()
 	if err != nil {
 		return nil, err
 	}
+	return d.readImageList(meta, a)
+}
 
+func (d *DropBox) readImageList(meta dropbox.Metadata, a dropbox.AccountInfo) ([]Image, error) {
 	l := make([]Image, 0, len(meta.Contents))
 	for _, content := range meta.Contents {
 		if content.IsDir {
@@ -138,13 +132,6 @@ func (d *DropBox) GetImage(contentPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// cache
-	if d.Level != nil {
-		if err := d.Level.Set([]byte(contentPath), ad, &db.WriteOptions{}); err != nil {
-			return nil, err
-		}
-	}
-
 	return ad, nil
 }
 
@@ -157,7 +144,7 @@ func (d *DropBox) AddImage(filePath string) (*Image, error) {
 
 	url_ := createImageUrl(filePath)
 
-	var p filePut
+	var p dropbox.FilePut
 	pd, err := d.PostFile(url_, filePath)
 	if err != nil {
 		return nil, err
@@ -182,13 +169,13 @@ func createImageUrl(filePath string) string {
 	return strings.Join([]string{addUrl, fileName}, "/")
 }
 
-func (d *DropBox) accountInfo() (*accountInfo, error) {
-	var a accountInfo
+func (d *DropBox) accountInfo() (dropbox.AccountInfo, error) {
+	var a dropbox.AccountInfo
 	info, err := d.Get(accountInfoUrl)
 	if err != nil {
-		return nil, err
+		return dropbox.AccountInfo{}, err
 	}
 	json.Unmarshal(info, &a)
 
-	return &a, nil
+	return a, nil
 }

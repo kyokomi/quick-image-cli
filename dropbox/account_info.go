@@ -1,6 +1,6 @@
 package dropbox
 
-type accountInfo struct {
+type AccountInfo struct {
 	Country     string `json:"country"`
 	DisplayName string `json:"display_name"`
 	Email       string `json:"email"`

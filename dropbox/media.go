@@ -1,6 +1,6 @@
 package dropbox
 
-type media struct {
+type Media struct {
 	Expires string `json:"expires"`
 	URL     string `json:"url"`
 }

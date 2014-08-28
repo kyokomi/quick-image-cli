@@ -1,6 +1,6 @@
 package dropbox
 
-type metadata struct {
+type Metadata struct {
 	Bytes    float64 `json:"bytes"`
 	Contents []struct {
 		Bytes       float64 `json:"bytes"`

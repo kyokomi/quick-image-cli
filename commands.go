@@ -9,12 +9,52 @@ import (
 	"github.com/kyokomi/appConfig"
 	"github.com/kyokomi/scan"
 	"github.com/skratchdot/open-golang/open"
-	"github.com/kyokomi/quick-image-cli/dropbox"
 )
 
 const accessTokenUrl = "https://kyokomi-oauth2.herokuapp.com/access"
 
-var ac *appConfig.AppConfig
+type DropBoxAppConfig struct {
+	appConfig.AppConfig
+}
+
+func (d *DropBoxAppConfig) readAccessToken() (string, error) {
+	data, err := d.ReadAppConfig()
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func readDropBoxAppConfig(appName string) (*DropBoxAppConfig, error) {
+	s := scan.CliScan{
+		Scans: []scan.Scan{
+			{Name: "token",
+				Value: "",
+				Usage: "please your dropbox accessToken",
+				Env:   "",
+			},
+		},
+	}
+
+	ac := appConfig.NewAppConfig(appName)
+	data, err := ac.ReadAppConfig()
+	accessToken := string(data)
+	if err != nil || accessToken == "" {
+
+		// OAuth jump
+		open.Run(accessTokenUrl)
+
+		// Scan accessToken
+		accessToken = s.Scan("token")
+
+		// config write
+		if err := ac.WriteAppConfig([]byte(accessToken)); err != nil {
+			return nil, err
+		}
+	}
+
+	return &DropBoxAppConfig{*ac}, nil
+}
 
 var Commands = []cli.Command{
 	commandAdd,
@@ -50,16 +90,17 @@ var commandDeleteConfig = cli.Command{
 }
 
 func doAdd(c *cli.Context) {
-	ac = appConfig.NewAppConfig(c.App.Name)
-	t, err := readAccessToken()
+	ac, err := readDropBoxAppConfig(c.App.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	d := dropbox.NewDropBox(t)
-	if err := d.SetupCache(ac.ConfigDirPath); err != nil {
+	t, err := ac.readAccessToken()
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	d := NewDropBox(t)
 
 	filePath := c.String("path")
 	image, err := d.AddImage(filePath)
@@ -70,18 +111,16 @@ func doAdd(c *cli.Context) {
 }
 
 func doList(c *cli.Context) {
-	ac = appConfig.NewAppConfig(c.App.Name)
-	t, err := readAccessToken()
+	ac, err := readDropBoxAppConfig(c.App.Name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	t, err := ac.readAccessToken()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	d := dropbox.NewDropBox(t)
-	if err := d.SetupCache(ac.ConfigDirPath); err != nil {
-		log.Fatal(err)
-	}
-	defer d.Level.Close()
-
+	d := NewDropBox(t)
 	l, err := d.ReadImageList()
 	if err != nil {
 		log.Fatal(err)
@@ -97,44 +136,10 @@ func doList(c *cli.Context) {
 }
 
 func doDeleteConfig(c *cli.Context) {
-	ac = appConfig.NewAppConfig(c.App.Name)
-
-	if err := resetAccessToken(); err != nil {
+	ac := appConfig.NewAppConfig(c.App.Name)
+	if err := ac.RemoveAppConfig(); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("delete config successful!")
 	fmt.Println("path: ", ac.ConfigDirPath)
-}
-
-func readAccessToken() (string, error) {
-	s := scan.CliScan{
-		Scans: []scan.Scan{
-			{Name: "token",
-				Value: "",
-				Usage: "please your dropbox accessToken",
-			},
-		},
-	}
-
-	data, err := ac.ReadAppConfig()
-	accessToken := string(data)
-	if err != nil || accessToken == "" {
-
-		// OAuth jump
-		open.Run(accessTokenUrl)
-
-		// Scan accessToken
-		accessToken = s.Scan("token")
-
-		// config write
-		if err := ac.WriteAppConfig([]byte(accessToken)); err != nil {
-			return "", err
-		}
-	}
-
-	return accessToken, nil
-}
-
-func resetAccessToken() error {
-	return ac.RemoveAppConfig()
 }
