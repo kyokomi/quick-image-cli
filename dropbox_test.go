@@ -39,3 +39,17 @@ func TestReadImageList(t *testing.T) {
 		t.Error("images len error")
 	}
 }
+
+func TestReplacePublicFileName(t *testing.T) {
+	fileName := replacePublicFileName("hogehoge/Public/fugafuga")
+	if fileName != "hogehoge/fugafuga" {
+		t.Errorf("replace error %s", fileName)
+	}
+}
+
+func TestCreateImageUrl(t *testing.T) {
+	imageUrl := createImageUrl("/User/kyokomi/hoge/image.png")
+	if imageUrl != (addUrl + "/image.png") {
+		t.Errorf("create image url error %s", imageUrl)
+	}
+}
