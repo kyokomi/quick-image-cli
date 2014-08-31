@@ -64,7 +64,7 @@ $ rm _obj/quick-image-cli
 $ ghr -u kyokomi -r quick-image-cli {tag} _obj/
 ```
 
-## Lisence
+## License
 
 [MIT](https://github.com/kyokomi/quick-image-cli/blob/master/LICENSE)
 
