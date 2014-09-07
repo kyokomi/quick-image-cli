@@ -11,7 +11,7 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
-const accessTokenUrl = "https://kyokomi-oauth2.herokuapp.com/access"
+const accessTokenURL = "https://kyokomi-oauth2.herokuapp.com/access"
 
 type DropBoxAppConfig struct {
 	appConfig.AppConfig
@@ -42,7 +42,7 @@ func readDropBoxAppConfig(appName string) (*DropBoxAppConfig, error) {
 	if err != nil || accessToken == "" {
 
 		// OAuth jump
-		open.Run(accessTokenUrl)
+		open.Run(accessTokenURL)
 
 		// Scan accessToken
 		accessToken = s.Scan("token")
@@ -82,8 +82,9 @@ var commandList = cli.Command{
 }
 
 var commandDeleteConfig = cli.Command{
-	Name:  "delete-config",
-	Usage: "",
+	Name:      "delete-config",
+	ShortName: "D",
+	Usage:     "",
 	Description: `
 `,
 	Action: doDeleteConfig,

@@ -8,9 +8,14 @@ import (
 	"github.com/kyokomi/quick-image-cli/dropbox"
 )
 
-func TestReadImageList(t *testing.T) {
-
+func TestNewDropBox(t *testing.T) {
 	d := NewDropBox("aaaaaaaaaaaa")
+	if d.AccessToken != "aaaaaaaaaaaa" {
+		t.Error("not equal accessToken")
+	}
+}
+
+func TestReadImageList(t *testing.T) {
 
 	var meta dropbox.Metadata
 	metaData, err := ioutil.ReadFile("test/meta.json")
@@ -26,7 +31,7 @@ func TestReadImageList(t *testing.T) {
 	}
 	json.Unmarshal(aData, &a)
 
-	images, err := d.readImageList(meta, a)
+	images, err := readImageList(meta, a, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,8 +53,8 @@ func TestReplacePublicFileName(t *testing.T) {
 }
 
 func TestCreateImageUrl(t *testing.T) {
-	imageUrl := createImageUrl("/User/kyokomi/hoge/image.png")
-	if imageUrl != (addUrl + "/image.png") {
+	imageUrl := createImageURL("/User/kyokomi/hoge/image.png")
+	if imageUrl != (addURL + "/image.png") {
 		t.Errorf("create image url error %s", imageUrl)
 	}
 }

@@ -1,27 +1,27 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
-	"bytes"
-	"io"
-	"os"
 	"github.com/kyokomi/quick-image-cli/dropbox"
 )
 
 const (
-	accountInfoUrl = "https://api.dropbox.com/1/account/info"
+	accountInfoURL = "https://api.dropbox.com/1/account/info"
 
-	listUrl = "https://api.dropbox.com/1/metadata/auto/Public"
-	addUrl  = "https://api-content.dropbox.com/1/files_put/auto/Public"
+	listURL = "https://api.dropbox.com/1/metadata/auto/Public"
+	addURL  = "https://api-content.dropbox.com/1/files_put/auto/Public"
 
-	mediaUrl = "https://api.dropbox.com/1/media/auto"
+	mediaURL = "https://api.dropbox.com/1/media/auto"
 
-	publicUrl  = "https://dl.dropbox.com/u/%.0f"
+	publicURL  = "https://dl.dropbox.com/u/%.0f"
 	authHeader = "Bearer %s"
 )
 
@@ -60,8 +60,7 @@ func (d *DropBox) Get(url string) ([]byte, error) {
 	return body, nil
 }
 
-func (d *DropBox) PostFile(url_, filePath string) ([]byte, error) {
-
+func (d *DropBox) PostFile(url, filePath string) ([]byte, error) {
 	var b bytes.Buffer
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -73,16 +72,27 @@ func (d *DropBox) PostFile(url_, filePath string) ([]byte, error) {
 		return nil, err
 	}
 
-	return d.Post(url_, b)
+	return d.Post(url, bytes.NewReader(b.Bytes()), nil)
 }
 
-func (d *DropBox) Post(url_ string, buf bytes.Buffer) ([]byte, error) {
-
-	req, err := http.NewRequest("POST", url_, &buf)
+func (d *DropBox) newPostRequest(url string, body io.Reader, params map[string]string) (*http.Request, error) {
+	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf(authHeader, d.AccessToken))
+	for key, value := range params {
+		req.Header.Set(key, value)
+	}
+	return req, nil
+}
+
+func (d *DropBox) Post(url string, body io.Reader, params map[string]string) ([]byte, error) {
+
+	req, err := d.newPostRequest(url, body, params)
+	if err != nil {
+		return nil, err
+	}
 
 	res, err := d.Client.Do(req)
 	if err != nil {
@@ -95,21 +105,20 @@ func (d *DropBox) Post(url_ string, buf bytes.Buffer) ([]byte, error) {
 
 func (d *DropBox) ReadImageList() ([]Image, error) {
 	var meta dropbox.Metadata
-	ld, err := d.Get(listUrl)
+	ld, err := d.Get(listURL)
 	if err != nil {
 		return nil, err
 	}
 	json.Unmarshal(ld, &meta)
-	fmt.Println(string(ld))
 
 	a, err := d.accountInfo()
 	if err != nil {
 		return nil, err
 	}
-	return d.readImageList(meta, a)
+	return readImageList(meta, a, isDir)
 }
 
-func (d *DropBox) readImageList(meta dropbox.Metadata, a dropbox.AccountInfo) ([]Image, error) {
+func readImageList(meta dropbox.Metadata, a dropbox.AccountInfo, isDir bool) ([]Image, error) {
 	l := make([]Image, 0, len(meta.Contents))
 	for _, content := range meta.Contents {
 		if content.IsDir {
@@ -128,7 +137,7 @@ func (d *DropBox) readImageList(meta dropbox.Metadata, a dropbox.AccountInfo) ([
 
 func (d *DropBox) GetImage(contentPath string) ([]byte, error) {
 	// send request
-	ad, err := d.Post(mediaUrl+contentPath, bytes.Buffer{})
+	ad, err := d.Post(mediaURL+contentPath, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -142,10 +151,10 @@ func (d *DropBox) AddImage(filePath string) (*Image, error) {
 		return nil, err
 	}
 
-	url_ := createImageUrl(filePath)
+	url := createImageURL(filePath)
 
 	var p dropbox.FilePut
-	pd, err := d.PostFile(url_, filePath)
+	pd, err := d.PostFile(url, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +163,7 @@ func (d *DropBox) AddImage(filePath string) (*Image, error) {
 	fileName := replacePublicFileName(p.Path)
 	image := Image{
 		Name: fileName,
-		URL:  fmt.Sprintf(publicUrl, a.Uid) + fileName,
+		URL:  fmt.Sprintf(publicURL, a.Uid) + fileName,
 	}
 	return &image, nil
 }
@@ -171,7 +180,7 @@ func createImageUrl(filePath string) string {
 
 func (d *DropBox) accountInfo() (dropbox.AccountInfo, error) {
 	var a dropbox.AccountInfo
-	info, err := d.Get(accountInfoUrl)
+	info, err := d.Get(accountInfoURL)
 	if err != nil {
 		return dropbox.AccountInfo{}, err
 	}
