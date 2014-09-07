@@ -36,7 +36,7 @@ func readDropBoxAppConfig(appName string) (*DropBoxAppConfig, error) {
 		},
 	}
 
-	ac := appConfig.NewAppConfig(appName)
+	ac := appConfig.NewDefaultAppConfig(appName)
 	data, err := ac.ReadAppConfig()
 	accessToken := string(data)
 	if err != nil || accessToken == "" {
@@ -54,6 +54,19 @@ func readDropBoxAppConfig(appName string) (*DropBoxAppConfig, error) {
 	}
 
 	return &DropBoxAppConfig{*ac}, nil
+}
+
+func newDropBox(appName string) (*DropBox, error) {
+	ac, err := readDropBoxAppConfig(appName)
+	if err != nil {
+		return nil, err
+	}
+	t, err := ac.readAccessToken()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewDropBox(t), nil
 }
 
 var Commands = []cli.Command{
@@ -91,17 +104,10 @@ var commandDeleteConfig = cli.Command{
 }
 
 func doAdd(c *cli.Context) {
-	ac, err := readDropBoxAppConfig(c.App.Name)
+	d, err := newDropBox(c.App.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	t, err := ac.readAccessToken()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	d := NewDropBox(t)
 
 	filePath := c.String("path")
 	image, err := d.AddImage(filePath)
@@ -112,16 +118,12 @@ func doAdd(c *cli.Context) {
 }
 
 func doList(c *cli.Context) {
-	ac, err := readDropBoxAppConfig(c.App.Name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	t, err := ac.readAccessToken()
+
+	d, err := newDropBox(c.App.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	d := NewDropBox(t)
 	l, err := d.ReadImageList()
 	if err != nil {
 		log.Fatal(err)
@@ -137,7 +139,7 @@ func doList(c *cli.Context) {
 }
 
 func doDeleteConfig(c *cli.Context) {
-	ac := appConfig.NewAppConfig(c.App.Name)
+	ac := appConfig.NewDefaultAppConfig(c.App.Name)
 	if err := ac.RemoveAppConfig(); err != nil {
 		log.Fatal(err)
 	}
