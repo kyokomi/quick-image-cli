@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -23,6 +24,8 @@ const (
 
 	publicURL  = "https://dl.dropbox.com/u/%.0f"
 	authHeader = "Bearer %s"
+
+	createFolderURL = "https://api.dropbox.com/1/fileops/create_folder"
 )
 
 type DropBox struct {
@@ -168,16 +171,6 @@ func (d *DropBox) AddImage(filePath string) (*Image, error) {
 	return &image, nil
 }
 
-func replacePublicFileName(filePath string) string {
-	return strings.Replace(filePath, "/Public", "", 1)
-}
-
-func createImageUrl(filePath string) string {
-	index := strings.LastIndex(filePath, "/")
-	fileName := filePath[index+1:]
-	return strings.Join([]string{addUrl, fileName}, "/")
-}
-
 func (d *DropBox) accountInfo() (dropbox.AccountInfo, error) {
 	var a dropbox.AccountInfo
 	info, err := d.Get(accountInfoURL)
@@ -187,4 +180,26 @@ func (d *DropBox) accountInfo() (dropbox.AccountInfo, error) {
 	json.Unmarshal(info, &a)
 
 	return a, nil
+}
+
+func (d *DropBox) CreateFolder(path string) ([]byte, error) {
+	v := url.Values{
+		"root": []string{"auto"},
+		"path": []string{"Public/" + path},
+	}
+	params := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
+
+	return d.Post(createFolderURL, strings.NewReader(v.Encode()), params)
+}
+
+func replacePublicFileName(filePath string) string {
+	return strings.Replace(filePath, "/Public", "", 1)
+}
+
+func createImageURL(filePath string) string {
+	index := strings.LastIndex(filePath, "/")
+	fileName := filePath[index+1:]
+	return strings.Join([]string{addURL, fileName}, "/")
 }

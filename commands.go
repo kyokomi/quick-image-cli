@@ -73,6 +73,7 @@ var Commands = []cli.Command{
 	commandAdd,
 	commandList,
 	commandDeleteConfig,
+	commandCreateFolder,
 }
 
 var commandAdd = cli.Command{
@@ -86,11 +87,26 @@ var commandAdd = cli.Command{
 	Action: doAdd,
 }
 
+var commandCreateFolder = cli.Command{
+	Name:      "create-folder",
+	ShortName: "C",
+	Usage:     "",
+	Description: `
+`,
+	Flags: []cli.Flag{
+		cli.StringFlag{Name: "path", Value: "", Usage: "", EnvVar: ""},
+	},
+	Action: doCreateFolder,
+}
+
 var commandList = cli.Command{
 	Name:  "list",
 	Usage: "",
 	Description: `
 `,
+	Flags: []cli.Flag{
+		cli.BoolFlag{Name: "dir", Usage: "", EnvVar: ""},
+	},
 	Action: doList,
 }
 
@@ -145,4 +161,17 @@ func doDeleteConfig(c *cli.Context) {
 	}
 	fmt.Println("delete config successful!")
 	fmt.Println("path: ", ac.ConfigDirPath)
+}
+
+func doCreateFolder(c *cli.Context) {
+	d, err := newDropBox(c.App.Name)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := d.CreateFolder(c.String("path"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(res))
 }
