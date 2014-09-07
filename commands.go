@@ -140,7 +140,7 @@ func doList(c *cli.Context) {
 		log.Fatal(err)
 	}
 
-	l, err := d.ReadImageList()
+	l, err := d.ReadImageList(c.Bool("dir"))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -106,7 +106,7 @@ func (d *DropBox) Post(url string, body io.Reader, params map[string]string) ([]
 	return ioutil.ReadAll(res.Body)
 }
 
-func (d *DropBox) ReadImageList() ([]Image, error) {
+func (d *DropBox) ReadImageList(isDir bool) ([]Image, error) {
 	var meta dropbox.Metadata
 	ld, err := d.Get(listURL)
 	if err != nil {
@@ -124,14 +124,19 @@ func (d *DropBox) ReadImageList() ([]Image, error) {
 func readImageList(meta dropbox.Metadata, a dropbox.AccountInfo, isDir bool) ([]Image, error) {
 	l := make([]Image, 0, len(meta.Contents))
 	for _, content := range meta.Contents {
-		if content.IsDir {
+		if !isDir && content.IsDir {
 			continue
 		}
 
 		fileName := replacePublicFileName(content.Path)
+		url := ""
+		if !content.IsDir {
+			url = fmt.Sprintf(publicURL, a.Uid) + fileName
+		}
+
 		image := Image{
 			Name: fileName,
-			URL:  fmt.Sprintf(publicUrl, a.Uid) + fileName,
+			URL:  url,
 		}
 		l = append(l, image)
 	}
