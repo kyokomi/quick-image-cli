@@ -83,6 +83,7 @@ var commandAdd = cli.Command{
 `,
 	Flags: []cli.Flag{
 		cli.StringFlag{Name: "path", Value: "", Usage: "", EnvVar: ""},
+		cli.StringFlag{Name: "dir-path, d", Value: "", Usage: "", EnvVar: ""},
 	},
 	Action: doAdd,
 }
@@ -125,8 +126,9 @@ func doAdd(c *cli.Context) {
 		log.Fatal(err)
 	}
 
+	dirPath := c.String("dir-path")
 	filePath := c.String("path")
-	image, err := d.AddImage(filePath)
+	image, err := d.AddImage(dirPath, filePath)
 	if err != nil {
 		log.Fatal(err)
 	}

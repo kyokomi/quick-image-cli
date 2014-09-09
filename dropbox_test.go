@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/kyokomi/quick-image-cli/dropbox"
+	"strings"
 )
 
 func TestNewDropBox(t *testing.T) {
@@ -53,8 +54,8 @@ func TestReplacePublicFileName(t *testing.T) {
 }
 
 func TestCreateImageUrl(t *testing.T) {
-	imageUrl := createImageURL("/User/kyokomi/hoge/image.png")
-	if imageUrl != (addURL + "/image.png") {
+	imageUrl := createImageURL("", "/User/kyokomi/hoge/image.png")
+	if imageUrl != strings.Join([]string{addURL, "", "image.png"}, "/") {
 		t.Errorf("create image url error %s", imageUrl)
 	}
 }
