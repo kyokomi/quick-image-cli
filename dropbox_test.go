@@ -13,10 +13,13 @@ import (
 
 func newStub(jsonPath string) (*httptest.Server, *DropBox) {
 	stub, _ := ioutil.ReadFile(jsonPath)
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(stub))
 	}))
 	d := NewDropBox("aaaaaaaaaaaa")
+	fmt.Println(ts.URL)
+	baseURL = ts.URL
+	baseContentURL = ts.URL
 	return ts, d
 }
 
@@ -30,10 +33,11 @@ func TestNewDropBox(t *testing.T) {
 func TestCreateFolder(t *testing.T) {
 	ts, d := newStub("test/create_folder.json")
 
-	_, err := d.CreateFolder("hoge_test")
+	res, err := d.CreateFolder("hoge_test")
 	if err != nil {
 		t.Error(err)
 	}
+	fmt.Println(string(res))
 
 	defer ts.Close()
 }
@@ -41,10 +45,11 @@ func TestCreateFolder(t *testing.T) {
 func TestAddImage(t *testing.T) {
 	ts, d := newStub("test/file_put.json")
 
-	_, err := d.AddImage("", "test/gopher.png")
+	res, err := d.AddImage("", "test/gopher.png")
 	if err != nil {
 		t.Error(err)
 	}
+	fmt.Println(res)
 
 	defer ts.Close()
 }
@@ -52,10 +57,11 @@ func TestAddImage(t *testing.T) {
 func TestMetaData(t *testing.T) {
 	ts, d := newStub("test/meta.json")
 
-	_, err := d.metaData("")
+	res, err := d.metaData("")
 	if err != nil {
 		t.Error(err)
 	}
+	fmt.Println(res)
 
 	defer ts.Close()
 }
@@ -63,10 +69,11 @@ func TestMetaData(t *testing.T) {
 func TestAccountInfo(t *testing.T) {
 	ts, d := newStub("test/account_info.json")
 
-	_, err := d.accountInfo()
+	res, err := d.accountInfo()
 	if err != nil {
 		t.Error(err)
 	}
+	fmt.Println(res)
 
 	defer ts.Close()
 }

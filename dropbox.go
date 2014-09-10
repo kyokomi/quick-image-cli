@@ -14,23 +14,27 @@ import (
 	"github.com/kyokomi/quick-image-cli/dropbox"
 )
 
+var (
+	baseURL        = "https://api.dropbox.com/1"
+	baseContentURL = "https://api-content.dropbox.com/1"
+)
+
 const (
-	accountInfoURL = "https://api.dropbox.com/1/account/info"
+	accountInfoURL  = "/account/info"
+	listURL         = "/metadata/auto/Public"
+	createFolderURL = "/fileops/create_folder"
+	mediaURL        = "/media/auto"
 
-	listURL = "https://api.dropbox.com/1/metadata/auto/Public"
-	addURL  = "https://api-content.dropbox.com/1/files_put/auto/Public"
-
-	mediaURL = "https://api.dropbox.com/1/media/auto"
+	addURL          = "/files_put/auto/Public"
 
 	publicURL  = "https://dl.dropbox.com/u/%.0f"
 	authHeader = "Bearer %s"
-
-	createFolderURL = "https://api.dropbox.com/1/fileops/create_folder"
 )
 
 type DropBox struct {
 	Client      *http.Client
 	AccessToken string
+	BaseURL     string
 }
 
 func NewDropBox(accessToken string) *DropBox {
@@ -39,6 +43,14 @@ func NewDropBox(accessToken string) *DropBox {
 		AccessToken: accessToken,
 	}
 	return dropBox
+}
+
+func resourceContentURL(url string) string {
+	return baseContentURL + url
+}
+
+func resourceURL(url string) string {
+	return baseURL + url
 }
 
 type Image struct {
@@ -121,8 +133,11 @@ func (d *DropBox) ReadImageList(path string, isDir bool) ([]Image, error) {
 }
 
 func (d *DropBox) metaData(path string) (*dropbox.Metadata, error) {
+
+	url := strings.Join([]string{resourceURL(listURL), path}, "/")
+
 	var meta dropbox.Metadata
-	ld, err := d.Get(strings.Join([]string{listURL, path}, "/"))
+	ld, err := d.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -154,8 +169,11 @@ func readImageList(meta *dropbox.Metadata, a *dropbox.AccountInfo, isDir bool) (
 }
 
 func (d *DropBox) GetImage(contentPath string) ([]byte, error) {
+
+	url := resourceURL(mediaURL) + contentPath
+
 	// send request
-	ad, err := d.Post(mediaURL+contentPath, nil, nil)
+	ad, err := d.Post(url, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +187,7 @@ func (d *DropBox) AddImage(dirPath, filePath string) (*Image, error) {
 		return nil, err
 	}
 
-	url := createImageURL(dirPath, filePath)
+	url := resourceContentURL(createImageURL(dirPath, filePath))
 
 	var p dropbox.FilePut
 	pd, err := d.PostFile(url, filePath)
@@ -188,8 +206,11 @@ func (d *DropBox) AddImage(dirPath, filePath string) (*Image, error) {
 }
 
 func (d *DropBox) accountInfo() (*dropbox.AccountInfo, error) {
+
+	url := resourceURL(accountInfoURL)
+
 	var a dropbox.AccountInfo
-	info, err := d.Get(accountInfoURL)
+	info, err := d.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +228,8 @@ func (d *DropBox) CreateFolder(path string) ([]byte, error) {
 		"Content-Type": "application/x-www-form-urlencoded",
 	}
 
-	return d.Post(createFolderURL, strings.NewReader(v.Encode()), params)
+	url := resourceURL(createFolderURL)
+	return d.Post(url, strings.NewReader(v.Encode()), params)
 }
 
 func replacePublicFileName(filePath string) string {
