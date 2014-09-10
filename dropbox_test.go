@@ -7,13 +7,46 @@ import (
 	"fmt"
 	"github.com/kyokomi/quick-image-cli/dropbox"
 	"strings"
+	"net/http"
+	"net/http/httptest"
 )
+
+func newStub(jsonPath string) (*httptest.Server, *DropBox) {
+	stub, _ := ioutil.ReadFile(jsonPath)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(stub))
+	}))
+	d := NewDropBox("aaaaaaaaaaaa")
+	return ts, d
+}
 
 func TestNewDropBox(t *testing.T) {
 	d := NewDropBox("aaaaaaaaaaaa")
 	if d.AccessToken != "aaaaaaaaaaaa" {
 		t.Error("not equal accessToken")
 	}
+}
+
+func TestMetaData(t *testing.T) {
+	ts, d := newStub("test/meta.json")
+
+	_, err := d.metaData("")
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer ts.Close()
+}
+
+func TestAccountInfo(t *testing.T) {
+	ts, d := newStub("test/account_info.json")
+
+	_, err := d.accountInfo()
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer ts.Close()
 }
 
 func TestReadImageList(t *testing.T) {
@@ -32,7 +65,7 @@ func TestReadImageList(t *testing.T) {
 	}
 	json.Unmarshal(aData, &a)
 
-	images, err := readImageList(meta, a, false)
+	images, err := readImageList(&meta, &a, false)
 	if err != nil {
 		t.Error(err)
 	}

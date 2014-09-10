@@ -106,6 +106,7 @@ var commandList = cli.Command{
 	Description: `
 `,
 	Flags: []cli.Flag{
+		cli.StringFlag{Name: "path", Value: "", Usage: "", EnvVar: ""},
 		cli.BoolFlag{Name: "dir", Usage: "", EnvVar: ""},
 	},
 	Action: doList,
@@ -142,7 +143,7 @@ func doList(c *cli.Context) {
 		log.Fatal(err)
 	}
 
-	l, err := d.ReadImageList(c.Bool("dir"))
+	l, err := d.ReadImageList(c.String("path"), c.Bool("dir"))
 	if err != nil {
 		log.Fatal(err)
 	}

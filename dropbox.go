@@ -106,13 +106,12 @@ func (d *DropBox) Post(url string, body io.Reader, params map[string]string) ([]
 	return ioutil.ReadAll(res.Body)
 }
 
-func (d *DropBox) ReadImageList(isDir bool) ([]Image, error) {
-	var meta dropbox.Metadata
-	ld, err := d.Get(listURL)
+func (d *DropBox) ReadImageList(path string, isDir bool) ([]Image, error) {
+
+	meta, err := d.metaData(path)
 	if err != nil {
 		return nil, err
 	}
-	json.Unmarshal(ld, &meta)
 
 	a, err := d.accountInfo()
 	if err != nil {
@@ -121,7 +120,18 @@ func (d *DropBox) ReadImageList(isDir bool) ([]Image, error) {
 	return readImageList(meta, a, isDir)
 }
 
-func readImageList(meta dropbox.Metadata, a dropbox.AccountInfo, isDir bool) ([]Image, error) {
+func (d *DropBox) metaData(path string) (*dropbox.Metadata, error) {
+	var meta dropbox.Metadata
+	ld, err := d.Get(strings.Join([]string{listURL, path}, "/"))
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(ld, &meta)
+
+	return &meta, nil
+}
+
+func readImageList(meta *dropbox.Metadata, a *dropbox.AccountInfo, isDir bool) ([]Image, error) {
 	l := make([]Image, 0, len(meta.Contents))
 	for _, content := range meta.Contents {
 		if !isDir && content.IsDir {
@@ -173,18 +183,19 @@ func (d *DropBox) AddImage(dirPath, filePath string) (*Image, error) {
 		Name: fileName,
 		URL:  fmt.Sprintf(publicURL, a.Uid) + fileName,
 	}
+
 	return &image, nil
 }
 
-func (d *DropBox) accountInfo() (dropbox.AccountInfo, error) {
+func (d *DropBox) accountInfo() (*dropbox.AccountInfo, error) {
 	var a dropbox.AccountInfo
 	info, err := d.Get(accountInfoURL)
 	if err != nil {
-		return dropbox.AccountInfo{}, err
+		return nil, err
 	}
 	json.Unmarshal(info, &a)
 
-	return a, nil
+	return &a, nil
 }
 
 func (d *DropBox) CreateFolder(path string) ([]byte, error) {
