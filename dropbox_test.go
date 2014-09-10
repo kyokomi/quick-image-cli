@@ -27,6 +27,28 @@ func TestNewDropBox(t *testing.T) {
 	}
 }
 
+func TestCreateFolder(t *testing.T) {
+	ts, d := newStub("test/create_folder.json")
+
+	_, err := d.CreateFolder("hoge_test")
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer ts.Close()
+}
+
+func TestAddImage(t *testing.T) {
+	ts, d := newStub("test/file_put.json")
+
+	_, err := d.AddImage("", "test/gopher.png")
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer ts.Close()
+}
+
 func TestMetaData(t *testing.T) {
 	ts, d := newStub("test/meta.json")
 
