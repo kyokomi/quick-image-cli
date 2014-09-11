@@ -180,14 +180,14 @@ func (d *DropBox) GetImage(contentPath string) ([]byte, error) {
 	return ad, nil
 }
 
-func (d *DropBox) AddImage(dirPath, filePath string) (*Image, error) {
+func (d *DropBox) AddImage(name, dirPath, filePath string) (*Image, error) {
 
 	a, err := d.accountInfo()
 	if err != nil {
 		return nil, err
 	}
 
-	url := resourceContentURL(createImageURL(dirPath, filePath))
+	url := resourceContentURL(createImageURL(name, dirPath, filePath))
 
 	var p dropbox.FilePut
 	pd, err := d.PostFile(url, filePath)
@@ -197,6 +197,7 @@ func (d *DropBox) AddImage(dirPath, filePath string) (*Image, error) {
 	json.Unmarshal(pd, &p)
 
 	fileName := replacePublicFileName(p.Path)
+
 	image := Image{
 		Name: fileName,
 		URL:  fmt.Sprintf(publicURL, a.Uid) + fileName,
@@ -236,8 +237,11 @@ func replacePublicFileName(filePath string) string {
 	return strings.Replace(filePath, "/Public", "", 1)
 }
 
-func createImageURL(dirPath, filePath string) string {
-	index := strings.LastIndex(filePath, "/")
-	fileName := filePath[index+1:]
-	return strings.Join([]string{addURL, dirPath, fileName}, "/")
+func createImageURL(name, dirPath, filePath string) string {
+
+	if name == "" {
+		index := strings.LastIndex(filePath, "/")
+		name = filePath[index+1:]
+	}
+	return strings.Join([]string{addURL, dirPath, name}, "/")
 }

@@ -45,7 +45,7 @@ func TestCreateFolder(t *testing.T) {
 func TestAddImage(t *testing.T) {
 	ts, d := newStub("test/file_put.json")
 
-	res, err := d.AddImage("", "test/gopher.png")
+	res, err := d.AddImage("", "", "test/gopher.png")
 	if err != nil {
 		t.Error(err)
 	}
@@ -116,7 +116,7 @@ func TestReplacePublicFileName(t *testing.T) {
 }
 
 func TestCreateImageUrl(t *testing.T) {
-	imageUrl := createImageURL("", "/User/kyokomi/hoge/image.png")
+	imageUrl := createImageURL("", "", "/User/kyokomi/hoge/image.png")
 	if imageUrl != strings.Join([]string{addURL, "", "image.png"}, "/") {
 		t.Errorf("create image url error %s", imageUrl)
 	}
